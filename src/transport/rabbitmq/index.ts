@@ -1,5 +1,5 @@
 import { IUser } from "../../dto/user.dto";
-import { ThreadService, userService } from "../../services";
+import { NotificationService, ThreadService, userService } from "../../services";
 import { rabbitmq } from "../../utils";
 
 
@@ -8,6 +8,14 @@ import { rabbitmq } from "../../utils";
 export async function startListenMessage() {
     try {
         // Listen to channel
+        await rabbitmq.listenTo("newReply", async (msg) => {
+            // Decode and destructure from message
+            const { threadId, userId } = JSON.parse(msg.content.toString());
+
+            // Create notification data
+            await NotificationService.create({ thread: threadId, user: userId, event: "New reply added" });
+        });
+
         await rabbitmq.listenTo("updateUserData", (msg) => {
             // Decode the data from message to object
             const user: IUser = JSON.parse(msg.content.toString());
