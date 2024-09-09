@@ -17,14 +17,16 @@ export const service = {
     create: async (requestData: INotification) => {
         // Contruct data
         const data = {
-            threadId: requestData.thread,
-            userId: requestData.user,
+            thread: requestData.thread,
+            user: requestData.user,
             event: requestData.event,
         };
 
         // Store data to database by given request data
         // Pass rquest data to reposuitory
         const result = await NotificationRepo.create(data);
+
+        console.log("hasil", result);
 
         return result;
     },

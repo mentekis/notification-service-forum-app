@@ -11,9 +11,15 @@ export async function startListenMessage() {
         await rabbitmq.listenTo("newReply", async (msg) => {
             // Decode and destructure from message
             const { threadId, userId } = JSON.parse(msg.content.toString());
+            console.log(threadId, userId);
 
             // Create notification data
             await NotificationService.create({ thread: threadId, user: userId, event: "New reply added" });
+
+            // Request for data enrichment by emitting an event
+            await rabbitmq.emitEventTo("newNotificationReply", {
+                threadId, userId
+            });
         });
 
         await rabbitmq.listenTo("updateUserData", (msg) => {
@@ -26,9 +32,20 @@ export async function startListenMessage() {
 
         await rabbitmq.listenTo("enrichThreadNotifData", async (msg) => {
             // Update thread data by data proven from message
-            const thread = JSON.parse(msg.content.toString());
+            const { threadId, title } = JSON.parse(msg.content.toString());
 
-            return await ThreadService.create(thread);
+            // Search thread by ID.
+            // Create new thread data if not exists
+            const currentThread = await ThreadService.findById(threadId);
+
+            if (currentThread) {
+                return;
+            }
+
+            return await ThreadService.create({
+                _id: threadId,
+                title
+            });
         });
 
         await rabbitmq.listenTo("enrichUserNotifData", async (msg) => {
